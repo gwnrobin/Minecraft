@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "FVoxelMod.h"
 #include "GameFramework/Actor.h"
 #include "ProceduralMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -25,6 +26,10 @@ class AChunk : public AActor
 
 		AWorldGenerator* World;
 		ChunkCoord* ChunkCoord;
+
+		TQueue<FVoxelMod> Modifications;
+
+	bool IsVoxelMapPopulated = false;
 		
 	protected:
 		// Called when the game starts or when spawned
@@ -33,6 +38,13 @@ class AChunk : public AActor
 	public:	
 		// Called every frame
 		virtual void Tick(float DeltaTime) override;
+
+		void Init();
+		int32 GetVoxelFromGlobalVector(FVector Pos);
+		void CreateMesh();
+		void ClearMeshData();
+		void EditVoxel(FVector Pos, int32 NewId);
+		void UpdateChunk();
 
 	private:
 		UProceduralMeshComponent* MeshComponent;
@@ -43,14 +55,13 @@ class AChunk : public AActor
 		TArray<FVector> Vertices;
 		TArray<int> Triangles;
 		TArray<FVector2D> Uvs;
-
+	
 		void PopulateVoxelMap();
-		void CreateMeshData();
+		void UpdateSurroundingChunks(int X, int Y, int z);
 		bool CheckVoxel(FVector Pos);
 		bool IsVoxelInChunk(int X, int Y, int Z);
 		bool IsActive();
 		void SetActiveState(bool state);
-		void AddVoxelDataToChunk(FVector Pos);
-		void CreateMesh();
+		void UpdateMeshData(FVector Pos);
 		void AddTexture(int TextureID);
 };

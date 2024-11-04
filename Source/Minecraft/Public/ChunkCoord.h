@@ -6,6 +6,7 @@ public:
 
 	// Constructor with parameters
 	ChunkCoord(int X, int Y);
+	ChunkCoord(FVector Pos);
 
 	~ChunkCoord();
 

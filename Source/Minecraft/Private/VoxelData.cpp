@@ -3,9 +3,9 @@
 // Initialize static constants
 const int FVoxelData::ChunkWidth = 16;
 const int FVoxelData::ChunkHeight = 128;
-const int FVoxelData::TextureAtlasSizeInBlocks = 32;
-const int FVoxelData::WorldSizeInChunks = 10;
-const int FVoxelData::ViewDistanceInChunks = 5;
+const int FVoxelData::TextureAtlasSizeInBlocks = 16;
+const int FVoxelData::WorldSizeInChunks = 50;
+const int FVoxelData::ViewDistanceInChunks = 20;
 
 const int FVoxelData::WorldSizeInVoxels = WorldSizeInChunks * ChunkWidth;
 

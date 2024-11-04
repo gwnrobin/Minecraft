@@ -24,5 +24,23 @@ public:
 	float TerrainScale;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Data")
+	float TreeZoneScale = 1.3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Data")
+	float TreeZoneThreshold = 0.6;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Data")
+	float TreePlacementScale = 15;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Data")
+	float TreePlacementThreshold = 0.8;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Data")
+	int MaxTreeSize = 12;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Data")
+	int MinTreeSize = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "My Data")
 	TArray<FLode> Lodes;
 };

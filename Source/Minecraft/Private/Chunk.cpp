@@ -24,14 +24,6 @@ AChunk::AChunk()
 void AChunk::BeginPlay()
 {
 	Super::BeginPlay();
-
-	AttachToActor(World, FAttachmentTransformRules::KeepWorldTransform);
-	SetActorScale3D(FVector(100, 100, 100));
-	SetActorLocation(FVector(ChunkCoord->X * FVoxelData::ChunkWidth * 100, ChunkCoord->Y * FVoxelData::ChunkWidth * 100, 0.0f));
-	
-	PopulateVoxelMap();
-	CreateMeshData();
-	CreateMesh();
 }
 
 // Called every frame
@@ -39,6 +31,19 @@ void AChunk::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AChunk::Init()
+{
+	if(IsVoxelMapPopulated)
+		return;
+	
+	AttachToActor(World, FAttachmentTransformRules::KeepWorldTransform);
+	SetActorScale3D(FVector(100, 100, 100));
+	SetActorLocation(FVector(ChunkCoord->X * FVoxelData::ChunkWidth * 100, ChunkCoord->Y * FVoxelData::ChunkWidth * 100, 0.0f));
+	
+	PopulateVoxelMap();
+	UpdateChunk();
 }
 
 void AChunk::PopulateVoxelMap()
@@ -53,10 +58,22 @@ void AChunk::PopulateVoxelMap()
 			}
 		}
 	}
+	IsVoxelMapPopulated = true;
 }
 
-void AChunk::CreateMeshData()
+void AChunk::UpdateChunk()
 {
+	while (!Modifications.IsEmpty())
+	{
+		FVoxelMod V;
+		Modifications.Dequeue(V);
+
+		FVector Pos = V.Position/100 -= MeshComponent->GetRelativeLocation();
+		VoxelMap[Pos.X][Pos.Y][Pos.Z] = V.ID;
+	}
+	
+	ClearMeshData();
+	
 	for (int z = 0; z < FVoxelData::ChunkHeight; z++)
 	{
 		for (int x = 0; x < FVoxelData::ChunkWidth; x++)
@@ -65,9 +82,40 @@ void AChunk::CreateMeshData()
 			{
 				if(World->BlockType[VoxelMap[x][y][z]].IsSolid)
 				{
-					AddVoxelDataToChunk(FVector(x,y,z));
+					UpdateMeshData(FVector(x,y,z));
 				}
 			}
+		}
+	}
+
+	CreateMesh();
+}
+
+void AChunk::EditVoxel(FVector Pos, int32 NewId)
+{
+	int32 XCheck = FMath::FloorToInt(Pos.X);
+	int32 YCheck = FMath::FloorToInt(Pos.Y);
+	int32 ZCheck = FMath::FloorToInt(Pos.Z);
+
+	XCheck -= FMath::FloorToInt(MeshComponent->GetRelativeLocation().X);
+	YCheck -= FMath::FloorToInt(MeshComponent->GetRelativeLocation().Y);
+
+	VoxelMap[XCheck][YCheck][ZCheck] = NewId;
+
+	UpdateChunk();
+}
+
+void AChunk::UpdateSurroundingChunks(int X, int Y, int Z)
+{
+	FVector	ThisVoxel = FVector(X, Y, Z);
+
+	for (int p = 0; p < 6; p++)
+	{
+		FVector CurrentVoxel = ThisVoxel + FVoxelData::FaceChecks[p];
+
+		if(!IsVoxelInChunk(CurrentVoxel.X, CurrentVoxel.Y, CurrentVoxel.Z))
+		{
+			World->GetChunkFromVector3(CurrentVoxel + MeshComponent->GetRelativeLocation())->UpdateChunk();
 		}
 	}
 }
@@ -80,7 +128,7 @@ bool AChunk::CheckVoxel(FVector Pos)
 
 	if (!IsVoxelInChunk(x, y, z))
 	{
-		return World->BlockType[World->GetVoxel(FVector(x, y, z) + MeshComponent->GetRelativeLocation())].IsSolid;
+		return World->CheckForVoxel(Pos + MeshComponent->GetRelativeLocation(), false);
 	}
 
 	// Check if the voxel is solid within the current chunk
@@ -100,6 +148,18 @@ bool AChunk::IsVoxelInChunk(int X, int Y, int Z)
 	return true;
 }
 
+int32 AChunk::GetVoxelFromGlobalVector(FVector Pos)
+{
+	int32 XCheck = FMath::FloorToInt(Pos.X);
+	int32 YCheck = FMath::FloorToInt(Pos.Y);
+	int32 ZCheck = FMath::FloorToInt(Pos.Z);
+
+	XCheck -= FMath::FloorToInt(MeshComponent->GetRelativeLocation().X);
+	YCheck -= FMath::FloorToInt(MeshComponent->GetRelativeLocation().Y);
+
+	return VoxelMap[XCheck][YCheck][ZCheck];
+}
+
 bool AChunk::IsActive()
 {
 	return IsHidden();
@@ -110,7 +170,7 @@ void AChunk::SetActiveState(bool state)
 	SetActorHiddenInGame(state);
 }
 
-void AChunk::AddVoxelDataToChunk(FVector Pos)
+void AChunk::UpdateMeshData(FVector Pos)
 {
 	for (int p = 0; p < 6; p++)
 	{ 
@@ -143,6 +203,14 @@ void AChunk::CreateMesh()
 {
 	MeshComponent->CreateMeshSection(0, Vertices, Triangles, TArray<FVector>(), Uvs, TArray<FColor>(),TArray<FProcMeshTangent>(), true);
 	MeshComponent->SetMaterial(0, World->Material);
+}
+
+void AChunk::ClearMeshData()
+{
+	vertexIndex = 0;
+	Vertices.Empty();
+	Triangles.Empty();
+	Uvs.Empty();
 }
 
 void AChunk::AddTexture(int TextureID)
